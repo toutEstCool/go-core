@@ -1,16 +1,12 @@
 package main // [ INIT OF THE SERVICE PACKAGE ]
 
 import (
-	// "database/sql"
-	// "databese/sql"
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
-
-	// "net/http"
 	"os"
 
-	// "encoding.json"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
@@ -46,4 +42,29 @@ func jsonContentTypeMiddleWare(next http.Handler) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// [ Services - get all users ]
+func getUsers(db sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rows, err := db.Query("SELECT * FROM users")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		users := []User{}
+		for rows.Next() {
+			var u User
+			if err := rows.Scan(&u.ID, &u.Name, &u.Email); err != nil {
+				log.Fatal(err)
+			}
+			users = append(users, u)
+		}
+		if err := rows.Err(); err != nil {
+			log.Fatal(err)
+		}
+
+		json.NewEncoder(w).Encode(users)
+	}
 }
