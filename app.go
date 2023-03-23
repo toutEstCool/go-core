@@ -1,33 +1,49 @@
-package main
+package main // [ INIT OF THE SERVICE PACKAGE ]
 
-import "fmt"
+import (
+	// "database/sql"
+	// "databese/sql"
+	"database/sql"
+	"log"
+	"net/http"
 
+	// "net/http"
+	"os"
+
+	// "encoding.json"
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
+)
+
+type User struct {
+	ID			int			`json:"id"`
+	Name		string	`json:"name"`
+	Email		string	`json:"email"`		
+}
 
 func main() {
-	fmt.Println("Hello World...")
-  // Типы данных 
-  var a int8 = -1
-  var b int16 = -2
-  var c int32 = 30
-	var d int64 = -9223372036854
-	var e uint8 = 230
-	var f uint16 = 21000
-	var g uint32 = 429496
-	var h uint64 = 184467440737095516
-	var i byte = 140
-	var j rune = 214748
-	var k int = 54
-	var l uint = 120
-	var a1 float32 = 31.1123908
-	var a2 float64 = -67123.124216236
-	var c1 complex64 = 1+2i
-	var c2 complex128 = 4+90i
+	// [ CONNECT DATABASE ]
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
-	var b1 bool = true
-	var b2 bool = false
+	// [ CREATE ROUTER ]
+	router := mux.NewRouter()
+	router.HandleFunc("/users", getUsers(db)).Methods("GET")
+	router.HandleFunc("/users/{id}", getUser(db)).Methods("GET")
+	router.HandleFunc("/users", createUse(db)).Methods("POST")
+	router.HandleFunc("/users/{id}", updateUser(db)).Methods("PUT")
+	router.HandleFunc("/users/{id}", deleteUser(db)).Methods("DELETE")
 
-	var name string = "Danil"
+	// [ START SERVER ]
+	log.Fatal(http.ListenAndServe(":8080", jsonContentTypeMiddleWare(router)))
+}
 
-
-	fmt.Println(a, b, c, d, e, f, g, h, i, j, k, l, a1, a2, c1, c2, b1, b2, name)
+func jsonContentTypeMiddleWare(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
 }
